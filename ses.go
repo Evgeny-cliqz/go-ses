@@ -30,6 +30,8 @@ type Config struct {
 
 	// SecretAccessKey is your Amazon AWS secret key.
 	SecretAccessKey string
+
+	Token string
 }
 
 // EnvConfig takes the access key ID and secret access key values from the environment variables
@@ -48,7 +50,7 @@ func (c *Config) SendEmail(from, to, subject, body string) (string, error) {
 	data.Add("Message.Body.Text.Data", body)
 	data.Add("AWSAccessKeyId", c.AccessKeyID)
 
-	return sesPost(data, c.AccessKeyID, c.SecretAccessKey)
+	return sesPost(data, c.AccessKeyID, c.SecretAccessKey, c.Token)
 }
 
 func (c *Config) SendEmailHTML(from, to, subject, bodyText, bodyHTML string) (string, error) {
@@ -61,7 +63,7 @@ func (c *Config) SendEmailHTML(from, to, subject, bodyText, bodyHTML string) (st
 	data.Add("Message.Body.Html.Data", bodyHTML)
 	data.Add("AWSAccessKeyId", c.AccessKeyID)
 
-	return sesPost(data, c.AccessKeyID, c.SecretAccessKey)
+	return sesPost(data, c.AccessKeyID, c.SecretAccessKey, c.Token)
 }
 
 func (c *Config) SendRawEmail(raw []byte) (string, error) {
@@ -70,7 +72,7 @@ func (c *Config) SendRawEmail(raw []byte) (string, error) {
 	data.Add("RawMessage.Data", base64.StdEncoding.EncodeToString(raw))
 	data.Add("AWSAccessKeyId", c.AccessKeyID)
 
-	return sesPost(data, c.AccessKeyID, c.SecretAccessKey)
+	return sesPost(data, c.AccessKeyID, c.SecretAccessKey, c.Token)
 }
 
 func authorizationHeader(date, accessKeyID, secretAccessKey string) []string {
@@ -125,7 +127,7 @@ func sesGet(data url.Values, accessKeyID, secretAccessKey string) (string, error
 	return string(resultbody), nil
 }
 
-func sesPost(data url.Values, accessKeyID, secretAccessKey string) (string, error) {
+func sesPost(data url.Values, accessKeyID, secretAccessKey, Token string) (string, error) {
 	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest("POST", endpoint, body)
 	if err != nil {
@@ -143,6 +145,10 @@ func sesPost(data url.Values, accessKeyID, secretAccessKey string) (string, erro
 	signature := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	auth := fmt.Sprintf("AWS3-HTTPS AWSAccessKeyId=%s, Algorithm=HmacSHA256, Signature=%s", accessKeyID, signature)
 	req.Header.Set("X-Amzn-Authorization", auth)
+
+	if Token != "" {
+		req.Header.Set("X-Amz-Security-Token", Token)
+	}
 
 	r, err := http.DefaultClient.Do(req)
 	if err != nil {
