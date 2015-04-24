@@ -135,6 +135,7 @@ func sesGet(data url.Values, endpoint, accessKeyID, secretAccessKey string) (str
 }
 
 func sesPost(data url.Values, endpoint, accessKeyID, secretAccessKey, Token string) (string, error) {
+
 	body := strings.NewReader(data.Encode())
 	req, err := http.NewRequest("POST", endpoint, body)
 	if err != nil {
